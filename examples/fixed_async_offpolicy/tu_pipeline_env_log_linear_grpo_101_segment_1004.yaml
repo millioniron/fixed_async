@@ -1,0 +1,25 @@
+defaults:
+  - tu_pipeline_env
+  - _self_
+
+old_log_probs_source: interp_prox_loglinear
+
+
+pg_clip_low: 0.003
+pg_clip_high: 0.004
+
+train_infer_correction:
+  is_weight:
+    enabled: true
+    weight_type: token
+    upper_bound: 2.0
+    detach: true
+  filters:
+    - enabled: true
+      agg_type: segment
+      ratio_enabled: true
+      ratio_low: 0.99
+      ratio_high: 1.01
+      diff_enabled: false
+      diff_low: -0.1
+      diff_high: 0.1

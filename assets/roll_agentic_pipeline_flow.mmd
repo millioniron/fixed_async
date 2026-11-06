@@ -1,0 +1,70 @@
+flowchart LR
+  %% ===== Styles =====
+  classDef input fill:#f1f3f5,stroke:#c5c9cf,color:#1f2937,stroke-width:1px;
+  classDef env fill:#dbeafe,stroke:#5b8def,color:#0f172a,stroke-width:1px;
+  classDef train fill:#fef3c7,stroke:#eab308,color:#111827,stroke-width:1px;
+  classDef eval fill:#d1fae5,stroke:#10b981,color:#111827,stroke-width:1px;
+  classDef out fill:#eef2ff,stroke:#7c83fd,color:#111827,stroke-width:1px;
+
+  %% ===== Left: input =====
+  subgraph L["任务与数据"]
+    I1["启动脚本<br/>run_agentic_pipline.sh"]
+    I2["配置<br/>tu_pipeline_env.yaml / tu_pipeline_rollout.yaml"]
+    I3["数据集<br/>/ROLL/data/tu_pipeline*.jsonl"]
+    I4["环境代码<br/>/ROLL/data/tu_pipeline_envs/*.py"]
+  end
+
+  %% ===== Center: runtime =====
+  subgraph C["环境与调度层 (Ray)"]
+    C1["TrajEnvManager Workers"]
+    C2["TUPipelineEnv<br/>(动态加载环境 + 工具调用)"]
+    C3["GroupQueueManager<br/>(traj_group_id 聚合)"]
+    C4["RolloutScheduler<br/>(async_generation_ratio 窗口调度)"]
+    C1 --> C2 --> C3 --> C4
+  end
+
+  %% ===== Right: train =====
+  subgraph T["Train 模式"]
+    T1["Actor Infer (SGLang)<br/>生成 tool-call 响应"]
+    T2["Reward / Advantage<br/>GRPO 组内归一化 + Return"]
+    T3["Actor Train (Megatron)<br/>PPO Clip 更新"]
+    T4["Old LogProb Source<br/>EWMA Prox / Snapshot / Recompute"]
+    T1 --> T2 --> T3
+    T4 --> T2
+    T3 -->|参数同步| T1
+  end
+
+  %% ===== Right: rollout =====
+  subgraph E["Rollout 模式"]
+    E1["Actor Infer (SGLang)"]
+    E2["仅采样评测<br/>不更新参数"]
+    E1 --> E2
+  end
+
+  %% ===== Bottom: outputs =====
+  subgraph O["产出"]
+    O1["Checkpoints<br/>agentic_tu_pipeline/models/..."]
+    O2["Rollout Dumps<br/>rollout/roll_exp/..."]
+    O3["Metrics<br/>wandb / tensorboard / logs"]
+  end
+
+  %% ===== Cross links =====
+  I1 --> C1
+  I2 --> C1
+  I3 --> C2
+  I4 --> C2
+
+  C4 -->|rollout batch| T1
+  C4 -->|eval batch| E1
+
+  T3 --> O1
+  T2 --> O3
+  E2 --> O2
+  E2 --> O3
+
+  %% ===== Classes =====
+  class I1,I2,I3,I4 input;
+  class C1,C2,C3,C4 env;
+  class T1,T2,T3,T4 train;
+  class E1,E2 eval;
+  class O1,O2,O3 out;

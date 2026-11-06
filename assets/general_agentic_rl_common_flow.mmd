@@ -1,0 +1,59 @@
+flowchart LR
+  %% ===== Common abstraction across both diagrams =====
+  classDef src fill:#f3f4f6,stroke:#c7cdd4,color:#111827,stroke-width:1px;
+  classDef env fill:#dbeafe,stroke:#5b8def,color:#0f172a,stroke-width:1px;
+  classDef inf fill:#d1fae5,stroke:#10b981,color:#0f172a,stroke-width:1px;
+  classDef rew fill:#fef9c3,stroke:#eab308,color:#0f172a,stroke-width:1px;
+  classDef trn fill:#fde68a,stroke:#f59e0b,color:#111827,stroke-width:1px;
+  classDef out fill:#eef2ff,stroke:#7c83fd,color:#111827,stroke-width:1px;
+
+  subgraph A["Agent / Task Sources"]
+    A1["Personal Agents / General Agents"]
+    A2["Task Config + Dataset"]
+  end
+
+  subgraph B["Environment & Tool Layer"]
+    B1["Environment Servers / Simulators"]
+    B2["Tool/API Execution"]
+    B3["Scheduler / Queue / Router"]
+    B1 --> B2 --> B3
+  end
+
+  subgraph C["Model Runtime"]
+    C1["Policy Server (Inference)"]
+    C2["Reward / Evaluator Server (PRM / RM / Rule)"]
+    C1 --> C2
+  end
+
+  subgraph D["Training System"]
+    D1["Training Engine (PPO/PG Variant)"]
+    D2["Reference / Old Policy Signal"]
+    D2 --> D1
+  end
+
+  subgraph E["Outputs"]
+    E1["Updated Policy Weights"]
+    E2["Rollout / Trajectory Data"]
+    E3["Metrics / Logs / Checkpoints"]
+  end
+
+  A1 --> B1
+  A2 --> B1
+  B3 -->|batched trajectories| C1
+  C1 -->|actions / responses| B2
+  B3 -->|samples| C2
+  C2 -->|reward / advantage signal| D1
+  C1 -->|logprobs / behavior stats| D1
+  D1 -->|weight sync| C1
+
+  D1 --> E1
+  B3 --> E2
+  D1 --> E3
+  C2 --> E3
+
+  class A1,A2 src;
+  class B1,B2,B3 env;
+  class C1 inf;
+  class C2 rew;
+  class D1,D2 trn;
+  class E1,E2,E3 out;
